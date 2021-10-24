@@ -18,6 +18,8 @@ from cloths_segmentation.dataloaders import SegmentationDataset
 from cloths_segmentation.metrics import binary_mean_iou
 from cloths_segmentation.utils import get_samples
 
+from tqdm import tqdm
+
 image_path = Path(os.environ["IMAGE_PATH"])
 mask_path = Path(os.environ["MASK_PATH"])
 
@@ -86,8 +88,13 @@ class SegmentPeople(pl.LightningModule):
     def val_dataloader(self):
         val_aug = from_dict(self.hparams["val_aug"])
 
+        if "val_length" not in self.hparams["train_parameters"]:
+            val_length = None
+        else:
+            val_length = self.hparams["train_parameters"]["val_length"]
+        
         result = DataLoader(
-            SegmentationDataset(self.val_samples, val_aug, length=None),
+            SegmentationDataset(self.val_samples, val_aug, length=val_length),
             batch_size=self.hparams["val_parameters"]["batch_size"],
             num_workers=self.hparams["num_workers"],
             shuffle=False,
@@ -164,6 +171,11 @@ def main():
         hparams = yaml.load(f, Loader=yaml.SafeLoader)
 
     pipeline = SegmentPeople(hparams)
+    # pipeline.setup()
+    # dataloader = pipeline.train_dataloader()
+    # for batch in tqdm(dataloader):
+    #     pass
+    # return
 
     Path(hparams["checkpoint_callback"]["dirpath"]).mkdir(exist_ok=True, parents=True)
 

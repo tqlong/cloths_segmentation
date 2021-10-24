@@ -26,25 +26,31 @@ class SegmentationDataset(Dataset):
 
     def __len__(self) -> int:
         return self.length
+    
 
     def __getitem__(self, idx: int) -> Dict[str, Any]:
         idx = idx % len(self.samples)
 
         image_path, mask_path = self.samples[idx]
+        try:
+            image = load_rgb(image_path, lib="cv2")
+            mask = load_grayscale(mask_path)
 
-        image = load_rgb(image_path, lib="cv2")
-        mask = load_grayscale(mask_path)
+            # apply augmentations
+            sample = self.transform(image=image, mask=mask)
+            image, mask = sample["image"], sample["mask"]
 
-        # apply augmentations
-        sample = self.transform(image=image, mask=mask)
-        image, mask = sample["image"], sample["mask"]
+            mask = (mask > 0).astype(np.uint8)
 
-        mask = (mask > 0).astype(np.uint8)
+            mask = torch.from_numpy(mask)
 
-        mask = torch.from_numpy(mask)
-
-        return {
-            "image_id": image_path.stem,
-            "features": image_to_tensor(image),
-            "masks": torch.unsqueeze(mask, 0).float(),
-        }
+            self.last_result = {
+                "image_id": image_path.stem,
+                "features": image_to_tensor(image),
+                "masks": torch.unsqueeze(mask, 0).float(),
+            }
+            return self.last_result
+        
+        except:
+            print("*** ERROR ***", image_path, mask_path)
+            return self.last_result

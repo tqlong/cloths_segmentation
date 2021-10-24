@@ -23,6 +23,8 @@ trainer:
   gradient_clip_val: 5.0
   num_sanity_val_steps: 2
   sync_batchnorm: True
+  profiler: advanced
+  max_epochs: 1
 #  resume_from_checkpoint: 2020-10-30/epoch=67.ckpt
 
 
@@ -33,6 +35,8 @@ scheduler:
 
 train_parameters:
   batch_size: 8
+  epoch_length: 2000
+  val_length: 10
 
 checkpoint_callback:
   type: pytorch_lightning.callbacks.ModelCheckpoint
