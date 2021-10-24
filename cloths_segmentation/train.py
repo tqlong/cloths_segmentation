@@ -32,7 +32,7 @@ def get_args():
 class SegmentPeople(pl.LightningModule):
     def __init__(self, hparams):
         super().__init__()
-        self.hparams = hparams
+        self.hparams.update(hparams)
 
         self.model = object_from_dict(self.hparams["model"])
         if "resume_from_checkpoint" in self.hparams:
@@ -121,9 +121,9 @@ class SegmentPeople(pl.LightningModule):
         for loss_name, weight, loss in self.losses:
             ls_mask = loss(logits, masks)
             total_loss += weight * ls_mask
-            logs[f"train_mask_{loss_name}"] = ls_mask
+            logs[f"train_mask_{loss_name}"] = ls_mask.detach()
 
-        logs["train_loss"] = total_loss
+        logs["train_loss"] = total_loss.detach()
 
         logs["lr"] = self._get_current_lr()
 
@@ -165,12 +165,13 @@ def main():
 
     pipeline = SegmentPeople(hparams)
 
-    Path(hparams["checkpoint_callback"]["filepath"]).mkdir(exist_ok=True, parents=True)
+    Path(hparams["checkpoint_callback"]["dirpath"]).mkdir(exist_ok=True, parents=True)
 
     trainer = object_from_dict(
         hparams["trainer"],
         logger=WandbLogger(hparams["experiment_name"]),
-        checkpoint_callback=object_from_dict(hparams["checkpoint_callback"]),
+        checkpoint_callback=True,
+        callbacks=[object_from_dict(hparams["checkpoint_callback"])],
     )
 
     trainer.fit(pipeline)
